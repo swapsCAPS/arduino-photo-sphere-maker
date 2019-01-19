@@ -1,28 +1,25 @@
-#include <Stepper.h>
+#include <AccelStepper.h>
 #include <Servo.h>
 
-Stepper pan(2048, 8, 10, 9, 11);
-
-Servo servoTilt;
+AccelStepper pan(AccelStepper::FULL4WIRE, 8, 10, 9, 11);
 
 void setup() {
   Serial.begin(9600);
-  servoTilt.attach(7);
+  pan.setMaxSpeed(17.0);
+  pan.setAcceleration(100.0);
+  pan.setCurrentPosition(0);
 }
 
+int panPos;
 void loop() {
-  int panVal  = analogRead(A0);
-  int tiltVal = analogRead(A1);
-
-  int speed = map(panVal, 0, 1023, 0, 16);
-  int tilt  = map(tiltVal, 0, 1023, 0, 180);
-
-  Serial.println(tilt);
-
-  servoTilt.write(tilt);
-
-  if (speed > 0) {
-    pan.setSpeed(speed);
-    pan.step(2048/ 100);
+  while (Serial.available() > 0) { // Something is in the serial buffer
+    panPos = Serial.parseInt();
+    String toPrint = "received ";
+    toPrint += panPos;
+    Serial.println(toPrint);
+    delay(1000);
+    Serial.println("moving");
+    pan.moveTo(panPos);
+    Serial.println("done");
   }
 }
