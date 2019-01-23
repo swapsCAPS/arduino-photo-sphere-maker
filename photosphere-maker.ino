@@ -22,20 +22,22 @@ void setup() {
   stepsPerTTRev = stepsPerRev * ratio;
 
   pan.setCurrentPosition(0);
-  pan.setMaxSpeed(1400.0);
+  pan.setMaxSpeed(1200.0);
   pan.setAcceleration(1000.0);
 
   Serial.println("enter degrees °");
 }
 
 int val;
-int req;
+long req;
 String str;
 String type;
 int indexOf;
 
 void loop() {
+  pan.run();
   while (Serial.available() > 0) { // Something is in the serial buffer
+
     str  = Serial.readString();
     indexOf = str.indexOf(" ");
     type    = str.substring(0, indexOf);
@@ -45,11 +47,6 @@ void loop() {
     Serial.println(val);
 
     if (type == "pan") {
-      return // Dont do anything for now
-      val *= -1;
-
-      req = map(val, 0, 359, 0, stepsPerTTRev);
-
       String toPrint = "Moving ";
       toPrint += val;
       toPrint += "°";
@@ -60,6 +57,12 @@ void loop() {
       }
 
       Serial.println(toPrint);
+
+      val *= -1;
+
+      req = val * (stepsPerTTRev / 360);
+
+      Serial.println(req);
       pan.move(req);
       return;
     }
@@ -76,5 +79,4 @@ void loop() {
     }
 
   }
-  pan.run();
 }
