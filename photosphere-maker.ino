@@ -1,13 +1,15 @@
 #include <AccelStepper.h>
 #include <Servo.h>
 
+#define stepsPerRev  4096
+#define outerTeeth   107
+#define innerTeeth   15
+#define servoOffset  40
+
 AccelStepper pan(AccelStepper::HALF4WIRE, 8, 10, 9, 11);
+
 Servo servoL;
 Servo servoR;
-
-#define stepsPerRev   4096
-#define outerTeeth    107
-#define innerTeeth    15
 
 float ratio;
 float stepsPerTTRev;
@@ -23,9 +25,6 @@ void setup() {
   pan.setMaxSpeed(1400.0);
   pan.setAcceleration(1000.0);
 
-  servoL.write(90);
-  servoR.write(90);
-
   Serial.println("enter degrees °");
 }
 
@@ -34,10 +33,6 @@ int req;
 String str;
 String type;
 int indexOf;
-int servoOffset = 25;
-int previousVal = 90;
-bool servoShouldTurn = false;
-int servoStep = 90;
 
 void loop() {
   while (Serial.available() > 0) { // Something is in the serial buffer
@@ -74,37 +69,12 @@ void loop() {
         Serial.println("Please enter: (val >= 0 || val <= 180)");
         return;
       }
-      servoShouldTurn = true;
-
-      /* delay(2000); */
-      /* servoL.detach(); */
-      /* servoR.detach(); */
+      servoL.write(abs(val - 180));
+      servoR.write(val);
 
       return;
     }
 
-  }
-  if (servoShouldTurn) {
-    Serial.println("servo should turn");
-
-    if (val < previousVal) {
-      servoStep -= 5;
-      Serial.println("servoStep -= 5");
-      Serial.println(servoStep);
-    } else if (val > previousVal) {
-      servoStep += 5;
-      Serial.println("servoStep += 5");
-      Serial.println(servoStep);
-    } else {
-      Serial.println("servoShouldTurn = false");
-      servoShouldTurn = false;
-      return;
-    }
-
-    servoL.write(abs(servoStep - 180));
-    servoR.write(servoStep - servoOffset);
-    previousVal = servoStep;
-    delay(10);
   }
   pan.run();
 }
