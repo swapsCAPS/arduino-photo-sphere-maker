@@ -32,23 +32,16 @@ void setup() {
   servoR.detach();
 }
 
-bool started = false;
-
-  // Degrees:
-  // 120 *  3 @ 25
-  // 40  *  9 @ 55
-  // 30  * 12 @ 90
-  // 40  *  9 @ 125 ?
-  // 120 *  3 @ 155 ?
 float degrees[]    = { 30.0, 40.0, 120.0,  40.0, 120.0 };
 float offsets[]    = {  0,  -15.0,   0,     0,     0   };
-int amounts[]      = { 1,    1,     1,     1,     1   };
-/* int amounts[]      = { 11,    9,     3,     9,     3   }; */
+/* int amounts[]      = { 1,    1,     1,     1,     1   }; */
+int amounts[]      = { 11,    9,     3,     9,     3   };
 float tiltAngles[] = { 92,   57,    23,   130,   155   };
 
 int step   = 0;
 int amount = 0;
 
+bool started    = false;
 bool offsetting = false;
 
 void loop() {
