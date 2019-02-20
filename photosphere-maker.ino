@@ -1,12 +1,12 @@
 #include <AccelStepper.h>
 #include <Servo.h>
 
-#define stepsPerRev  4096
-#define outerTeeth   107
-#define innerTeeth   15
+#define stepsPerRev  2048.0 // 4096
+#define outerTeeth   107.0
+#define innerTeeth   15.0
 #define servoOffset  40
 
-AccelStepper pan(AccelStepper::HALF4WIRE, 8, 10, 9, 11);
+AccelStepper pan(AccelStepper::FULL4WIRE, 8, 10, 9, 11);
 
 Servo servoL;
 Servo servoR;
@@ -16,20 +16,18 @@ float stepsPerTTRev;
 
 void setup() {
   Serial.begin(9600);
-  servoL.attach(6);
-  servoR.attach(7);
   ratio         = outerTeeth / innerTeeth;
   stepsPerTTRev = stepsPerRev * ratio;
 
   pan.setCurrentPosition(0);
-  pan.setMaxSpeed(1200.0);
-  pan.setAcceleration(1000.0);
+  pan.setMaxSpeed(250.0);
+  pan.setAcceleration(250.0);
 
   Serial.println("enter degrees °");
 }
 
-int val;
-long req;
+int deg;
+float req;
 String str;
 String type;
 int indexOf;
@@ -41,16 +39,18 @@ void loop() {
     str  = Serial.readString();
     indexOf = str.indexOf(" ");
     type    = str.substring(0, indexOf);
-    val     = str.substring(indexOf).toInt();
+    deg     = str.substring(indexOf).toFloat();
 
     Serial.println(type);
-    Serial.println(val);
+    Serial.println(deg);
 
     if (type == "pan") {
+      servoL.detach();
+      servoR.detach();
       String toPrint = "Moving ";
-      toPrint += val;
+      toPrint += deg;
       toPrint += "°";
-      if (val > 0) {
+      if (deg > 0) {
         toPrint += " ccw";
       } else {
         toPrint += " cw";
@@ -58,9 +58,16 @@ void loop() {
 
       Serial.println(toPrint);
 
-      val *= -1;
+      deg *= -1;
 
-      req = val * (stepsPerTTRev / 360);
+  // Degrees:
+  // 120 *  3 @ 25
+  // 40  *  9 @ 55
+  // 30  * 12 @ 90
+  // 40  *  9 @ 125 ?
+  // 120 *  3 @ 155 ?
+
+      req = (stepsPerTTRev / 360.0) * deg;
 
       Serial.println(req);
       pan.move(req);
@@ -68,12 +75,14 @@ void loop() {
     }
 
     if (type = "tilt") {
-      if (val < 0 || val > 180) {
-        Serial.println("Please enter: (val >= 0 || val <= 180)");
+      servoL.attach(6);
+      servoR.attach(7);
+      if (deg < 0 || deg > 180) {
+        Serial.println("Please enter: (deg >= 0 || deg <= 180)");
         return;
       }
-      servoL.write(abs(val - 180));
-      servoR.write(val);
+      servoL.write(abs(deg - 180));
+      servoR.write(deg);
 
       return;
     }
