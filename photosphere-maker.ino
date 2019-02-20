@@ -22,70 +22,73 @@ void setup() {
   pan.setCurrentPosition(0);
   pan.setMaxSpeed(250.0);
   pan.setAcceleration(250.0);
+  servoL.attach(6);
+  servoR.attach(7);
+  servoL.write(0);
+  servoR.write(0);
+  servoL.detach();
+  servoR.detach();
 
-  Serial.println("enter degrees °");
 }
 
-int deg;
-float req;
-String str;
-String type;
-int indexOf;
+bool started = false;
+
+float degrees[] = { 30.0, 40.0, 120.0 };
+/* int amounts[]   = { 12, 9, 3 }; */
+int amounts[]   = { 1, 1, 1 };
+float tiltAngles[] = { 90, 55, 25 };
+
+int step   = 0;
+int amount = 0;
 
 void loop() {
   pan.run();
   while (Serial.available() > 0) { // Something is in the serial buffer
+    String str  = Serial.readString();
 
-    str  = Serial.readString();
-    indexOf = str.indexOf(" ");
-    type    = str.substring(0, indexOf);
-    deg     = str.substring(indexOf).toFloat();
+    if (str == "start") {
+      started = true;
 
-    Serial.println(type);
-    Serial.println(deg);
-
-    if (type == "pan") {
+      servoL.attach(6);
+      servoR.attach(7);
+      servoL.write(abs(tiltAngles[step] - 180));
+      servoR.write(tiltAngles[step]);
       servoL.detach();
       servoR.detach();
-      String toPrint = "Moving ";
-      toPrint += deg;
-      toPrint += "°";
-      if (deg > 0) {
-        toPrint += " ccw";
-      } else {
-        toPrint += " cw";
+
+      float req = (stepsPerTTRev / 360.0) * degrees[amount];
+      Serial.println(amount);
+      pan.move(req);
+    }
+  }
+
+  if (started == true) {
+    if (amount < amounts[step]) {
+      if (pan.distanceToGo() <= 0) {
+        amount++;
+        Serial.println("status");
+        Serial.println(step);
+        Serial.println(amount);
+        Serial.println("");
+        float req = (stepsPerTTRev / 360.0) * degrees[step];
+        delay(500);
+        pan.move(req);
       }
-
-      Serial.println(toPrint);
-
-      deg *= -1;
-
+    } else {
+      step++;
+      amount = 0;
+      servoL.attach(6);
+      servoR.attach(7);
+      servoL.write(abs(tiltAngles[step] - 180));
+      servoR.write(tiltAngles[step]);
+      servoL.detach();
+      servoR.detach();
+    }
+  }
   // Degrees:
   // 120 *  3 @ 25
   // 40  *  9 @ 55
   // 30  * 12 @ 90
   // 40  *  9 @ 125 ?
   // 120 *  3 @ 155 ?
-
-      req = (stepsPerTTRev / 360.0) * deg;
-
-      Serial.println(req);
-      pan.move(req);
-      return;
-    }
-
-    if (type = "tilt") {
-      servoL.attach(6);
-      servoR.attach(7);
-      if (deg < 0 || deg > 180) {
-        Serial.println("Please enter: (deg >= 0 || deg <= 180)");
-        return;
-      }
-      servoL.write(abs(deg - 180));
-      servoR.write(deg);
-
-      return;
-    }
-
-  }
 }
