@@ -14,6 +14,7 @@ Servo servoR;
 struct Step {
   float deg;
   float tiltAngle;
+  int   delayMs;
 };
 
 float stepsPerTTRev;
@@ -30,18 +31,22 @@ void setup() {
   pan.setMaxSpeed(350.0);
   pan.setAcceleration(100.0);
 
+  servoL.attach(6);
+  servoR.attach(7);
   servoL.write(90);
   servoR.write(90);
   delay(2000);
   servoL.detach();
   servoR.detach();
+
+  delay(10000);
+  Start();
 }
 
 // Yes, yes. We could create a complicated loop to step through the steps,
 // but this is way more understandable.
 #define TOTAL_STEPS 33
 Step steps[] = {
-  { 30.0, 90 },
   { 30.0, 90 },
   { 30.0, 90 },
   { 30.0, 90 },
@@ -62,9 +67,8 @@ Step steps[] = {
   { 40.0, 55 },
   { 40.0, 55 },
   { 40.0, 55 },
-  { 40.0, 55 },
-  { 40.0, 125 },
-  { 40.0, 125 },
+  { 10.0, 55 },   // Offset slightly to misalign with the 'dot'! This is so we can get a nice still image after tilting.
+  { -10.0, 125 }, // Now align again. With new tilt value.
   { 40.0, 125 },
   { 40.0, 125 },
   { 40.0, 125 },
@@ -73,7 +77,7 @@ Step steps[] = {
   { 40.0, 125 },
   { 40.0, 125 },
   { 360.0, 23 },
-  { 360.0, 155 }
+  { 360.0, 157 }
 };
 
 void Tilt(int angle) {
@@ -101,6 +105,14 @@ void Stop() {
   Serial.println("Stopped");
 }
 
+void Start() {
+  started = true;
+  servoL.attach(6);
+  servoR.attach(7);
+  Tilt(steps[step].tiltAngle);
+  Pan(steps[step].deg);
+}
+
 void loop() {
   pan.run();
   while (Serial.available() > 0) { // Something is in the serial buffer
@@ -111,18 +123,13 @@ void loop() {
     }
 
     if (str == "start") {
-      started = true;
-      servoL.attach(6);
-      servoR.attach(7);
-      Tilt(steps[step].tiltAngle);
-      Pan(steps[step].deg);
+      Start();
     }
   }
 
   if (started == true) {
     if (abs(pan.distanceToGo()) > 0) { return; } // Still need to move
-
-    delay(200);
+    delay(100);
 
     step++;                                      // Movement done do next move
 
