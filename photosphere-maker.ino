@@ -11,38 +11,95 @@ AccelStepper pan(AccelStepper::FULL4WIRE, 8, 10, 9, 11);
 Servo servoL;
 Servo servoR;
 
-float ratio;
+struct Step {
+  float deg;
+  float tiltAngle;
+};
+
 float stepsPerTTRev;
+
+int step     = 0;
+bool started = false;
 
 void setup() {
   Serial.begin(9600);
-  ratio         = outerTeeth / innerTeeth;
+  float ratio = outerTeeth / innerTeeth;
   stepsPerTTRev = stepsPerRev * ratio;
 
   pan.setCurrentPosition(0);
-  pan.setMaxSpeed(250.0);
+  pan.setMaxSpeed(350.0);
   pan.setAcceleration(100.0);
 
-  servoL.attach(6);
-  servoR.attach(7);
-  servoL.write(92);
-  servoR.write(92);
+  servoL.write(90);
+  servoR.write(90);
   delay(2000);
   servoL.detach();
   servoR.detach();
 }
 
-float degrees[]    = { 30.0, 40.0, 120.0,  40.0, 120.0 };
-float offsets[]    = {  0,  -15.0,   0,     0,     0   };
-/* int amounts[]      = { 1,    1,     1,     1,     1   }; */
-int amounts[]      = { 11,    9,     3,     9,     3   };
-float tiltAngles[] = { 92,   57,    23,   130,   155   };
+// Yes, yes. We could create a complicated loop to step through the steps,
+// but this is way more understandable.
+#define TOTAL_STEPS 33
+Step steps[] = {
+  { 30.0, 90 },
+  { 30.0, 90 },
+  { 30.0, 90 },
+  { 30.0, 90 },
+  { 30.0, 90 },
+  { 30.0, 90 },
+  { 30.0, 90 },
+  { 30.0, 90 },
+  { 30.0, 90 },
+  { 30.0, 90 },
+  { 30.0, 90 },
+  { 30.0, 90 },
+  { -10.0, 55 }, // Offset slightly to align with the 'dot'
+  { 40.0, 55 },
+  { 40.0, 55 },
+  { 40.0, 55 },
+  { 40.0, 55 },
+  { 40.0, 55 },
+  { 40.0, 55 },
+  { 40.0, 55 },
+  { 40.0, 55 },
+  { 40.0, 55 },
+  { 40.0, 125 },
+  { 40.0, 125 },
+  { 40.0, 125 },
+  { 40.0, 125 },
+  { 40.0, 125 },
+  { 40.0, 125 },
+  { 40.0, 125 },
+  { 40.0, 125 },
+  { 40.0, 125 },
+  { 360.0, 23 },
+  { 360.0, 155 }
+};
 
-int step   = 0;
-int amount = 0;
+void Tilt(int angle) {
+  Serial.println("Tilt:");
+  Serial.println(angle);
+  servoL.write(abs(angle - 180));
+  servoR.write(angle);
+}
 
-bool started    = false;
-bool offsetting = false;
+void Pan(float angle) {
+  Serial.println("Pan:");
+  Serial.println(angle);
+  float req = (stepsPerTTRev / 360.0) * angle;
+  pan.move(req);
+}
+
+void Stop() {
+  started = false;
+  step    = 0;
+  pan.stop();
+  Tilt(steps[step].tiltAngle);
+  delay(1500);
+  servoL.detach();
+  servoR.detach();
+  Serial.println("Stopped");
+}
 
 void loop() {
   pan.run();
@@ -50,67 +107,31 @@ void loop() {
     String str  = Serial.readString();
 
     if (str == "stop") {
-      started = false;
-      pan.stop();
+      Stop();
     }
 
     if (str == "start") {
       started = true;
-
       servoL.attach(6);
       servoR.attach(7);
-      servoL.write(abs(tiltAngles[step] - 180));
-      servoR.write(tiltAngles[step]);
-
-      float req = (stepsPerTTRev / 360.0) * degrees[amount];
-      Serial.println(amount);
-      pan.move(req);
+      Tilt(steps[step].tiltAngle);
+      Pan(steps[step].deg);
     }
   }
 
   if (started == true) {
+    if (abs(pan.distanceToGo()) > 0) { return; } // Still need to move
 
-    if (offsetting == true) {
-      if (abs(pan.distanceToGo()) > 0) { return; } // Still need to move
-      offsetting = false;                          // No more movement, stop offsetting
-      return;
-    }
+    delay(200);
 
-    if (amount < amounts[step]) {
-      if (abs(pan.distanceToGo()) > 0) { return; } // Still need to move
+    step++;                                      // Movement done do next move
 
-      // Movement done do next move
-      amount++;
-      float req = (stepsPerTTRev / 360.0) * degrees[step];
-      delay(500);
-      pan.move(req);
+    if (step > TOTAL_STEPS) { return Stop(); }   // Reached the end
 
-    } else {
-      step++; // Reached end of the steps on this level go to next
+    Serial.println("Step:");
+    Serial.println(step);
 
-      if (step > 4) { // Reached the end
-        started = false;
-        pan.stop();
-        servoL.attach(6);
-        servoR.attach(7);
-        servoL.write(abs(92 - 180));
-        servoR.write(92);
-
-        return Serial.println("Done");
-      }
-
-      amount = 0;
-      servoL.attach(6);
-      servoR.attach(7);
-      servoL.write(abs(tiltAngles[step] - 180));
-      servoR.write(tiltAngles[step]);
-
-      delay(1000);
-
-      // Do offset move if we need it
-      offsetting = true;
-      float req = (stepsPerTTRev / 360.0) * offsets[step];
-      pan.move(req);
-    }
+    Tilt(steps[step].tiltAngle);
+    Pan(steps[step].deg);
   }
 }
