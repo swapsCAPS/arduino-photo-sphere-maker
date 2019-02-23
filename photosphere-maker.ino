@@ -77,14 +77,14 @@ Step steps[] = {
 };
 
 void Tilt(int angle) {
-  Serial.println("Tilt:");
+  Serial.print("Tilt: ");
   Serial.println(angle);
   servoL.write(abs(angle - 180));
   servoR.write(angle);
 }
 
 void Pan(float angle) {
-  Serial.println("Pan:");
+  Serial.print("Pan:  ");
   Serial.println(angle);
   float req = (stepsPerTTRev / 360.0) * angle;
   pan.move(req);
@@ -128,10 +128,14 @@ void loop() {
 
     if (step > TOTAL_STEPS) { return Stop(); }   // Reached the end
 
-    Serial.println("Step:");
-    Serial.println(step);
+    Serial.print("Step: ");
+    Serial.print(step);
+    Serial.print(" - ");
+    Serial.println(TOTAL_STEPS);
 
     Tilt(steps[step].tiltAngle);
     Pan(steps[step].deg);
+
+    Serial.println("");
   }
 }
